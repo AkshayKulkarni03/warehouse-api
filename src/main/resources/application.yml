@@ -1,3 +1,7 @@
 server:
   servlet:
     context-path: /api
+spring:
+  servlet:
+    multipart:
+      enabled: true
