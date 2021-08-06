@@ -1,4 +1,4 @@
-package com.ikea.assignment.warehouse.api.service.entity;
+package com.ikea.assignment.warehouse.service.entity;
 
 import lombok.Getter;
 import lombok.Setter;
