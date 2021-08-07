@@ -2,6 +2,7 @@ package com.ikea.assignment.warehouse.service.impl;
 
 import com.ikea.assignment.warehouse.api.exception.InventoryMissingException;
 import com.ikea.assignment.warehouse.service.WareHouseService;
+import com.ikea.assignment.warehouse.service.entity.Article;
 import com.ikea.assignment.warehouse.service.entity.Inventory;
 import com.ikea.assignment.warehouse.service.entity.Product;
 import com.ikea.assignment.warehouse.service.repository.InventoryRepository;
@@ -9,11 +10,14 @@ import com.ikea.assignment.warehouse.service.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor(onConstructor_ = {@Autowired})
@@ -58,5 +62,31 @@ public class WareHouseServiceImpl implements WareHouseService {
         }
         productToBeProcessed.setModifiedAt(LocalDateTime.now());
         return productRepository.save(productToBeProcessed);
+    }
+
+    @Override
+    public Map<Product, Integer> loadAllProducts() {
+        List<String> distinctArticleIds = productRepository.getDistinctArticleIds();
+        final Map<String, Long> articleAndStock = new HashMap<>();
+        if (!CollectionUtils.isEmpty(distinctArticleIds)) {
+            for (String articleId : distinctArticleIds) {
+                Optional<Inventory> optionalInventory = inventoryRepository.findByArticleId(articleId);
+                if (optionalInventory.isPresent()) {
+                    Long stock = optionalInventory.get().getStock();
+                    articleAndStock.put(articleId, stock);
+                }
+            }
+        }
+        List<Product> productList = productRepository.findAll();
+        Map<Product, Integer> productsWithStock = new HashMap<>();
+        for (Product product : productList) {
+            Map<String, Long> productRequiredInventory = product.getArticles().stream().collect(Collectors.toMap(article -> article.getInventory().getArticleId(), Article::getAmount));
+            long countOfInventoryItemsPresent = productRequiredInventory.entrySet().stream().filter(entry -> articleAndStock.get(entry.getKey()) >= entry.getValue()).count();
+            System.out.println("service--" + productRequiredInventory +" ----- "+articleAndStock+ " <--> " + countOfInventoryItemsPresent);
+            String key = productRequiredInventory.entrySet().stream().max((entry1, entry2) -> entry1.getValue() > entry2.getValue() ? 1 : -1).get().getKey();
+
+            productsWithStock.put(product, countOfInventoryItemsPresent == productRequiredInventory.size() ? Math.toIntExact(articleAndStock.get(key) / productRequiredInventory.get(key)) : 0);
+        }
+        return productsWithStock;
     }
 }

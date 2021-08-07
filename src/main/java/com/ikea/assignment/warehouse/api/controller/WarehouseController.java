@@ -27,6 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -98,6 +99,8 @@ public class WarehouseController {
 
     @GetMapping
     public ResponseEntity getAllProducts() {
+        Map<Product, Integer> productIntegerMap = wareHouseService.loadAllProducts();
+        productIntegerMap.entrySet().stream().forEach((entry)-> System.out.println(entry.getKey().getName() + "--" + entry.getValue()));
         return ResponseEntity.ok(null);
     }
 
