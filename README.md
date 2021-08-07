@@ -1,5 +1,5 @@
 # warehouse-api
-Implementation a warehouse software API with [Spring Boot](http://projects.spring.io/spring-boot/).
+Implementation a warehouse software API with [Spring Boot](https://spring.io/projects/spring-boot).
 
 ## Requirements
 For building and running the application you need:
