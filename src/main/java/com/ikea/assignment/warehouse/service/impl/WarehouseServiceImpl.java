@@ -2,7 +2,7 @@ package com.ikea.assignment.warehouse.service.impl;
 
 import com.ikea.assignment.warehouse.api.exception.InventoryMissingException;
 import com.ikea.assignment.warehouse.api.exception.ProductNotAvailableException;
-import com.ikea.assignment.warehouse.service.WareHouseService;
+import com.ikea.assignment.warehouse.service.WarehouseService;
 import com.ikea.assignment.warehouse.service.entity.Article;
 import com.ikea.assignment.warehouse.service.entity.Inventory;
 import com.ikea.assignment.warehouse.service.entity.Product;
@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor(onConstructor_ = {@Autowired})
-public class WareHouseServiceImpl implements WareHouseService {
+public class WarehouseServiceImpl implements WarehouseService {
 
     private final InventoryRepository inventoryRepository;
     private final ProductRepository productRepository;

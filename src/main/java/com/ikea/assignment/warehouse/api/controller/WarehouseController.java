@@ -8,7 +8,7 @@ import com.ikea.assignment.warehouse.api.mapper.ProductMapper;
 import com.ikea.assignment.warehouse.api.model.Inventories;
 import com.ikea.assignment.warehouse.api.model.Product;
 import com.ikea.assignment.warehouse.api.model.Products;
-import com.ikea.assignment.warehouse.service.WareHouseService;
+import com.ikea.assignment.warehouse.service.WarehouseService;
 import com.ikea.assignment.warehouse.service.entity.Inventory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,7 +42,7 @@ import static org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE;
 @Slf4j
 public class WarehouseController {
 
-    private final WareHouseService wareHouseService;
+    private final WarehouseService warehouseService;
 
     private final InventoryMapper inventoryMapper;
     private final ProductMapper productMapper;
@@ -55,7 +55,7 @@ public class WarehouseController {
                 ObjectMapper objectMapper = new ObjectMapper();
                 Inventories inventories = objectMapper.readValue(inputStream, Inventories.class);
                 if (!CollectionUtils.isEmpty(inventories.getInventory())) {
-                    List<Inventory> processedInventories = inventories.getInventory().stream().map(inventory -> wareHouseService.storeInventory(inventoryMapper.mapToEntity(inventory))).collect(Collectors.toList());
+                    List<Inventory> processedInventories = inventories.getInventory().stream().map(inventory -> warehouseService.storeInventory(inventoryMapper.mapToEntity(inventory))).collect(Collectors.toList());
 
                     long newCount = processedInventories.stream().filter(inventory -> inventory.getCreatedAt().isEqual(inventory.getModifiedAt())).count();
 
@@ -82,7 +82,7 @@ public class WarehouseController {
                 ObjectMapper objectMapper = new ObjectMapper();
                 Products products = objectMapper.readValue(inputStream, Products.class);
                 if (!CollectionUtils.isEmpty(products.getListOfProducts())) {
-                    List<com.ikea.assignment.warehouse.service.entity.Product> processedProducts = products.getListOfProducts().stream().map(product -> wareHouseService.storeProduct(productMapper.mapToEntity(product))).collect(Collectors.toList());
+                    List<com.ikea.assignment.warehouse.service.entity.Product> processedProducts = products.getListOfProducts().stream().map(product -> warehouseService.storeProduct(productMapper.mapToEntity(product))).collect(Collectors.toList());
 
                     long newCount = processedProducts.stream().filter(product -> product.getCreatedAt().isEqual(product.getModifiedAt())).count();
 
@@ -103,14 +103,14 @@ public class WarehouseController {
 
     @GetMapping(path = "/products")
     public ResponseEntity<Products> getAllProducts() {
-        Map<com.ikea.assignment.warehouse.service.entity.Product, Integer> productIntegerMap = wareHouseService.loadAllProducts();
+        Map<com.ikea.assignment.warehouse.service.entity.Product, Integer> productIntegerMap = warehouseService.loadAllProducts();
         Products products = getProducts(productIntegerMap);
         return ResponseEntity.ok(products);
     }
 
     @PutMapping(path = "/product/{id}/quantity/{amount}")
     public ResponseEntity<Product> sellProduct(@PathVariable(value = "id") String id, @PathVariable(value = "amount") Integer amount) {
-        AbstractMap.SimpleEntry<com.ikea.assignment.warehouse.service.entity.Product, Integer> productDetails = wareHouseService.sellProduct(UUID.fromString(id), amount);
+        AbstractMap.SimpleEntry<com.ikea.assignment.warehouse.service.entity.Product, Integer> productDetails = warehouseService.sellProduct(UUID.fromString(id), amount);
         Product product = productMapper.mapToModel(productDetails.getKey());
         product.setQuantity(productDetails.getValue());
         product.getArticles().clear();
@@ -119,7 +119,7 @@ public class WarehouseController {
 
     @DeleteMapping("/product/{id}")
     public ResponseEntity<Products> deleteProduct(@PathVariable(value = "id") String id) {
-        Map<com.ikea.assignment.warehouse.service.entity.Product, Integer> productIntegerMap = wareHouseService.deleteProduct(UUID.fromString(id));
+        Map<com.ikea.assignment.warehouse.service.entity.Product, Integer> productIntegerMap = warehouseService.deleteProduct(UUID.fromString(id));
         Products products = getProducts(productIntegerMap);
         return ResponseEntity.ok(products);
     }

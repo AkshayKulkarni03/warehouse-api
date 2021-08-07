@@ -2,13 +2,12 @@ package com.ikea.assignment.warehouse.service;
 
 import com.ikea.assignment.warehouse.service.entity.Inventory;
 import com.ikea.assignment.warehouse.service.entity.Product;
-import javassist.compiler.ast.Pair;
 
 import java.util.AbstractMap;
 import java.util.Map;
 import java.util.UUID;
 
-public interface WareHouseService {
+public interface WarehouseService {
 
     Inventory storeInventory(Inventory inventory);
 
