@@ -15,6 +15,7 @@ public interface ProductMapper {
     com.ikea.assignment.warehouse.service.entity.Product mapToEntity(Product product);
 
     @Mapping(target = "amountOf", source = "amount")
+    @Mapping(target = "articleId", source = "inventory.articleId")
     Article mapArticleToModel(com.ikea.assignment.warehouse.service.entity.Article article);
 
     @InheritInverseConfiguration

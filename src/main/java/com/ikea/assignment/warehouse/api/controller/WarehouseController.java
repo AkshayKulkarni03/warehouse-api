@@ -9,6 +9,7 @@ import com.ikea.assignment.warehouse.api.model.Inventories;
 import com.ikea.assignment.warehouse.api.model.Products;
 import com.ikea.assignment.warehouse.service.WareHouseService;
 import com.ikea.assignment.warehouse.service.entity.Inventory;
+import com.ikea.assignment.warehouse.service.entity.Product;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,10 +50,14 @@ public class WarehouseController {
                 ObjectMapper objectMapper = new ObjectMapper();
                 Inventories inventories = objectMapper.readValue(inputStream, Inventories.class);
                 if (!CollectionUtils.isEmpty(inventories.getInventory())) {
-                    List<Inventory> collect = inventories.getInventory().stream().map(inventory -> wareHouseService.storeInventory(inventoryMapper.mapToEntity(inventory))).collect(Collectors.toList());
-                    return ResponseEntity.ok(String.format("There are %d inventory records added", collect.size()));
+                    List<Inventory> processedInventories = inventories.getInventory().stream().map(inventory -> wareHouseService.storeInventory(inventoryMapper.mapToEntity(inventory))).collect(Collectors.toList());
+
+                    long newCount = processedInventories.stream().filter(inventory -> inventory.getCreatedAt().isEqual(inventory.getModifiedAt())).count();
+
+                    return ResponseEntity.ok(String.format("There were %d imported inventory records. (%d were new, %d were updated)",
+                            processedInventories.size(), newCount, (processedInventories.size() - newCount)));
                 } else {
-                    return ResponseEntity.ok(String.format("There are %d inventory records added", 0));
+                    return ResponseEntity.ok(String.format("There were %d imported inventory records", 0));
                 }
             } catch (IOException e) {
                 log.error("Json Parsing Exception for Inventory - ", e);
@@ -71,6 +76,16 @@ public class WarehouseController {
             try (InputStream inputStream = file.getInputStream()) {
                 ObjectMapper objectMapper = new ObjectMapper();
                 Products products = objectMapper.readValue(inputStream, Products.class);
+                if (!CollectionUtils.isEmpty(products.getProducts())) {
+                    List<Product> processedProducts = products.getProducts().stream().map(product -> wareHouseService.storeProduct(productMapper.mapToEntity(product))).collect(Collectors.toList());
+
+                    long newCount = processedProducts.stream().filter(product -> product.getCreatedAt().isEqual(product.getModifiedAt())).count();
+
+                    return ResponseEntity.ok(String.format("There were %d imported products. (%d were new, %d were updated)",
+                            processedProducts.size(), newCount, (processedProducts.size() - newCount)));
+                } else {
+                    return ResponseEntity.ok(String.format("There were %d imported products", 0));
+                }
             } catch (IOException e) {
                 log.error("Json Parsing Exception for Products - ", e);
                 throw new JsonFileProcessingException(String.format("Input File '%s' for Products is not supported", file.getOriginalFilename()));
@@ -79,7 +94,6 @@ public class WarehouseController {
             log.error("File Format {} is not supported", contentType);
             throw new FileFormatNotSupportedException(String.format("File format '%s' is not supported", contentType));
         }
-        return ResponseEntity.ok("done");
     }
 
     @GetMapping
