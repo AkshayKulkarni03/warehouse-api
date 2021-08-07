@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -82,10 +83,12 @@ public class WareHouseServiceImpl implements WareHouseService {
         for (Product product : productList) {
             Map<String, Long> productRequiredInventory = product.getArticles().stream().collect(Collectors.toMap(article -> article.getInventory().getArticleId(), Article::getAmount));
             long countOfInventoryItemsPresent = productRequiredInventory.entrySet().stream().filter(entry -> articleAndStock.get(entry.getKey()) >= entry.getValue()).count();
-            System.out.println("service--" + productRequiredInventory +" ----- "+articleAndStock+ " <--> " + countOfInventoryItemsPresent);
-            String key = productRequiredInventory.entrySet().stream().max((entry1, entry2) -> entry1.getValue() > entry2.getValue() ? 1 : -1).get().getKey();
-
-            productsWithStock.put(product, countOfInventoryItemsPresent == productRequiredInventory.size() ? Math.toIntExact(articleAndStock.get(key) / productRequiredInventory.get(key)) : 0);
+            if (countOfInventoryItemsPresent != productRequiredInventory.size()) {
+                productsWithStock.put(product, 0);
+            } else {
+                List<Integer> collectedItems = productRequiredInventory.keySet().stream().map(key -> Math.toIntExact(articleAndStock.get(key) / productRequiredInventory.get(key))).collect(Collectors.toList());
+                productsWithStock.put(product, Collections.min(collectedItems));
+            }
         }
         return productsWithStock;
     }

@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -77,8 +78,8 @@ public class WarehouseController {
             try (InputStream inputStream = file.getInputStream()) {
                 ObjectMapper objectMapper = new ObjectMapper();
                 Products products = objectMapper.readValue(inputStream, Products.class);
-                if (!CollectionUtils.isEmpty(products.getProducts())) {
-                    List<Product> processedProducts = products.getProducts().stream().map(product -> wareHouseService.storeProduct(productMapper.mapToEntity(product))).collect(Collectors.toList());
+                if (!CollectionUtils.isEmpty(products.getListOfProducts())) {
+                    List<Product> processedProducts = products.getListOfProducts().stream().map(product -> wareHouseService.storeProduct(productMapper.mapToEntity(product))).collect(Collectors.toList());
 
                     long newCount = processedProducts.stream().filter(product -> product.getCreatedAt().isEqual(product.getModifiedAt())).count();
 
@@ -97,20 +98,26 @@ public class WarehouseController {
         }
     }
 
-    @GetMapping
-    public ResponseEntity getAllProducts() {
+    @GetMapping(path = "/products")
+    public ResponseEntity<Products> getAllProducts() {
         Map<Product, Integer> productIntegerMap = wareHouseService.loadAllProducts();
-        productIntegerMap.entrySet().stream().forEach((entry)-> System.out.println(entry.getKey().getName() + "--" + entry.getValue()));
-        return ResponseEntity.ok(null);
-    }
-
-    @DeleteMapping
-    public ResponseEntity deleteProduct() {
-        return ResponseEntity.ok(null);
+        Products products = new Products();
+        productIntegerMap.forEach((key, value) -> {
+            com.ikea.assignment.warehouse.api.model.Product product = productMapper.mapToModel(key);
+            product.setQuantity(value);
+            product.getArticles().clear();
+            products.getListOfProducts().add(product);
+        });
+        return ResponseEntity.ok(products);
     }
 
     @PutMapping
     public ResponseEntity sellProduct() {
+        return ResponseEntity.ok(null);
+    }
+
+    @DeleteMapping("/product/{id}")
+    public ResponseEntity deleteProduct(@PathVariable(value = "id") String id) {
         return ResponseEntity.ok(null);
     }
 }
