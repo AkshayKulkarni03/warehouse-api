@@ -3,6 +3,7 @@ package com.ikea.assignment.warehouse.api.exception.handler;
 import com.ikea.assignment.warehouse.api.exception.FileFormatNotSupportedException;
 import com.ikea.assignment.warehouse.api.exception.InventoryMissingException;
 import com.ikea.assignment.warehouse.api.exception.JsonFileProcessingException;
+import com.ikea.assignment.warehouse.api.exception.ProductNotAvailableException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -24,9 +25,9 @@ public class ApiExceptionHandler {
         return new ApiError(BAD_REQUEST, ex.getMessage());
     }
 
-    @ExceptionHandler(value = {InventoryMissingException.class})
+    @ExceptionHandler(value = {InventoryMissingException.class, ProductNotAvailableException.class})
     @ResponseStatus(value = NOT_FOUND)
-    public ApiError inventoryMissingExceptionHandler(InventoryMissingException ex, WebRequest request) {
+    public ApiError inventoryMissingExceptionHandler(RuntimeException ex, WebRequest request) {
         return new ApiError(NOT_FOUND, ex.getMessage());
     }
 

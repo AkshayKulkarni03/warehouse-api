@@ -1,6 +1,7 @@
 package com.ikea.assignment.warehouse.service.impl;
 
 import com.ikea.assignment.warehouse.api.exception.InventoryMissingException;
+import com.ikea.assignment.warehouse.api.exception.ProductNotAvailableException;
 import com.ikea.assignment.warehouse.service.WareHouseService;
 import com.ikea.assignment.warehouse.service.entity.Article;
 import com.ikea.assignment.warehouse.service.entity.Inventory;
@@ -13,11 +14,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
+import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -67,6 +70,58 @@ public class WareHouseServiceImpl implements WareHouseService {
 
     @Override
     public Map<Product, Integer> loadAllProducts() {
+        final Map<String, Long> articleAndStock = getInventoryStockData();
+
+        List<Product> productList = productRepository.findAll();
+
+        Map<Product, Integer> productsWithStock = new HashMap<>();
+
+        productList.forEach(product -> {
+            AbstractMap.SimpleEntry<Product, Integer> productQuantity = getProductQuantity(articleAndStock, product);
+            productsWithStock.put(productQuantity.getKey(), productQuantity.getValue());
+        });
+        return productsWithStock;
+    }
+
+    @Override
+    public AbstractMap.SimpleEntry<Product, Integer> sellProduct(UUID id, Integer amount) {
+        Optional<Product> optionalProduct = productRepository.findById(id);
+        if (optionalProduct.isPresent()) {
+            Product product = optionalProduct.get();
+            AbstractMap.SimpleEntry<Product, Integer> productQuantity = getProductQuantity(getInventoryStockData(), product);
+            if (productQuantity.getValue() >= amount) {
+                List<Article> articles = product.getArticles();
+                articles.forEach(article -> {
+                    String articleId = article.getInventory().getArticleId();
+                    Optional<Inventory> optionalInventory = inventoryRepository.findByArticleId(articleId);
+                    if (optionalInventory.isPresent()) {
+                        Inventory inventory = optionalInventory.get();
+                        inventory.setStock(inventory.getStock() - article.getAmount());
+                        inventoryRepository.save(inventory);
+                    }
+                });
+                return getProductQuantity(getInventoryStockData(), product);
+            } else {
+                throw new ProductNotAvailableException(String.format("Product '%s' is not available in stock with quantity '%d'", product.getName(), amount));
+            }
+        } else {
+            throw new ProductNotAvailableException("Product is not found");
+        }
+    }
+
+    @Override
+    public Map<Product, Integer> deleteProduct(UUID id) {
+        Optional<Product> optionalProduct = productRepository.findById(id);
+        if (optionalProduct.isPresent()) {
+            Product product = optionalProduct.get();
+            productRepository.delete(product);
+            return loadAllProducts();
+        } else {
+            throw new ProductNotAvailableException("Product is not found");
+        }
+    }
+
+    private Map<String, Long> getInventoryStockData() {
         List<String> distinctArticleIds = productRepository.getDistinctArticleIds();
         final Map<String, Long> articleAndStock = new HashMap<>();
         if (!CollectionUtils.isEmpty(distinctArticleIds)) {
@@ -78,18 +133,17 @@ public class WareHouseServiceImpl implements WareHouseService {
                 }
             }
         }
-        List<Product> productList = productRepository.findAll();
-        Map<Product, Integer> productsWithStock = new HashMap<>();
-        for (Product product : productList) {
-            Map<String, Long> productRequiredInventory = product.getArticles().stream().collect(Collectors.toMap(article -> article.getInventory().getArticleId(), Article::getAmount));
-            long countOfInventoryItemsPresent = productRequiredInventory.entrySet().stream().filter(entry -> articleAndStock.get(entry.getKey()) >= entry.getValue()).count();
-            if (countOfInventoryItemsPresent != productRequiredInventory.size()) {
-                productsWithStock.put(product, 0);
-            } else {
-                List<Integer> collectedItems = productRequiredInventory.keySet().stream().map(key -> Math.toIntExact(articleAndStock.get(key) / productRequiredInventory.get(key))).collect(Collectors.toList());
-                productsWithStock.put(product, Collections.min(collectedItems));
-            }
+        return articleAndStock;
+    }
+
+    private AbstractMap.SimpleEntry<Product, Integer> getProductQuantity(Map<String, Long> articleAndStock, Product product) {
+        Map<String, Long> productRequiredInventory = product.getArticles().stream().collect(Collectors.toMap(article -> article.getInventory().getArticleId(), Article::getAmount));
+        long countOfInventoryItemsPresent = productRequiredInventory.entrySet().stream().filter(entry -> articleAndStock.get(entry.getKey()) >= entry.getValue()).count();
+        if (countOfInventoryItemsPresent != productRequiredInventory.size()) {
+            return new AbstractMap.SimpleEntry<>(product, 0);
+        } else {
+            List<Integer> collectedItems = productRequiredInventory.keySet().stream().map(key -> Math.toIntExact(articleAndStock.get(key) / productRequiredInventory.get(key))).collect(Collectors.toList());
+            return new AbstractMap.SimpleEntry<>(product, Collections.min(collectedItems));
         }
-        return productsWithStock;
     }
 }

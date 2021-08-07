@@ -6,10 +6,10 @@ import com.ikea.assignment.warehouse.api.exception.JsonFileProcessingException;
 import com.ikea.assignment.warehouse.api.mapper.InventoryMapper;
 import com.ikea.assignment.warehouse.api.mapper.ProductMapper;
 import com.ikea.assignment.warehouse.api.model.Inventories;
+import com.ikea.assignment.warehouse.api.model.Product;
 import com.ikea.assignment.warehouse.api.model.Products;
 import com.ikea.assignment.warehouse.service.WareHouseService;
 import com.ikea.assignment.warehouse.service.entity.Inventory;
-import com.ikea.assignment.warehouse.service.entity.Product;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,15 +27,18 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+import static org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE;
 
 @RestController
 @RequiredArgsConstructor(onConstructor_ = {@Autowired})
-@RequestMapping(path = "/warehouses")
+@RequestMapping(path = "/api/warehouses")
 @Slf4j
 public class WarehouseController {
 
@@ -44,7 +47,7 @@ public class WarehouseController {
     private final InventoryMapper inventoryMapper;
     private final ProductMapper productMapper;
 
-    @PostMapping(path = "/inventory", produces = APPLICATION_JSON_VALUE)
+    @PostMapping(path = "/inventory", consumes = {MULTIPART_FORM_DATA_VALUE}, produces = APPLICATION_JSON_VALUE)
     public ResponseEntity<String> loadInventory(@RequestParam("file") MultipartFile file) {
         String contentType = file.getContentType();
         if ("application/json".equalsIgnoreCase(contentType)) {
@@ -71,7 +74,7 @@ public class WarehouseController {
         }
     }
 
-    @PostMapping(path = "/products", produces = APPLICATION_JSON_VALUE)
+    @PostMapping(path = "/products", consumes = {MULTIPART_FORM_DATA_VALUE}, produces = APPLICATION_JSON_VALUE)
     public ResponseEntity<String> loadProducts(@RequestParam("file") MultipartFile file) {
         String contentType = file.getContentType();
         if ("application/json".equalsIgnoreCase(contentType)) {
@@ -79,7 +82,7 @@ public class WarehouseController {
                 ObjectMapper objectMapper = new ObjectMapper();
                 Products products = objectMapper.readValue(inputStream, Products.class);
                 if (!CollectionUtils.isEmpty(products.getListOfProducts())) {
-                    List<Product> processedProducts = products.getListOfProducts().stream().map(product -> wareHouseService.storeProduct(productMapper.mapToEntity(product))).collect(Collectors.toList());
+                    List<com.ikea.assignment.warehouse.service.entity.Product> processedProducts = products.getListOfProducts().stream().map(product -> wareHouseService.storeProduct(productMapper.mapToEntity(product))).collect(Collectors.toList());
 
                     long newCount = processedProducts.stream().filter(product -> product.getCreatedAt().isEqual(product.getModifiedAt())).count();
 
@@ -100,24 +103,35 @@ public class WarehouseController {
 
     @GetMapping(path = "/products")
     public ResponseEntity<Products> getAllProducts() {
-        Map<Product, Integer> productIntegerMap = wareHouseService.loadAllProducts();
+        Map<com.ikea.assignment.warehouse.service.entity.Product, Integer> productIntegerMap = wareHouseService.loadAllProducts();
+        Products products = getProducts(productIntegerMap);
+        return ResponseEntity.ok(products);
+    }
+
+    @PutMapping(path = "/product/{id}/quantity/{amount}")
+    public ResponseEntity<Product> sellProduct(@PathVariable(value = "id") String id, @PathVariable(value = "amount") Integer amount) {
+        AbstractMap.SimpleEntry<com.ikea.assignment.warehouse.service.entity.Product, Integer> productDetails = wareHouseService.sellProduct(UUID.fromString(id), amount);
+        Product product = productMapper.mapToModel(productDetails.getKey());
+        product.setQuantity(productDetails.getValue());
+        product.getArticles().clear();
+        return ResponseEntity.ok(product);
+    }
+
+    @DeleteMapping("/product/{id}")
+    public ResponseEntity<Products> deleteProduct(@PathVariable(value = "id") String id) {
+        Map<com.ikea.assignment.warehouse.service.entity.Product, Integer> productIntegerMap = wareHouseService.deleteProduct(UUID.fromString(id));
+        Products products = getProducts(productIntegerMap);
+        return ResponseEntity.ok(products);
+    }
+
+    private Products getProducts(Map<com.ikea.assignment.warehouse.service.entity.Product, Integer> productIntegerMap) {
         Products products = new Products();
         productIntegerMap.forEach((key, value) -> {
-            com.ikea.assignment.warehouse.api.model.Product product = productMapper.mapToModel(key);
+            Product product = productMapper.mapToModel(key);
             product.setQuantity(value);
             product.getArticles().clear();
             products.getListOfProducts().add(product);
         });
-        return ResponseEntity.ok(products);
-    }
-
-    @PutMapping
-    public ResponseEntity sellProduct() {
-        return ResponseEntity.ok(null);
-    }
-
-    @DeleteMapping("/product/{id}")
-    public ResponseEntity deleteProduct(@PathVariable(value = "id") String id) {
-        return ResponseEntity.ok(null);
+        return products;
     }
 }
