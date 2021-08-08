@@ -17,8 +17,6 @@ spring:
     console:
       enabled: true
 
-logging:
-  level:
-    org:
-      hibernate:
-        type: trace
+springdoc:
+  swagger-ui:
+    operationsSorter: method

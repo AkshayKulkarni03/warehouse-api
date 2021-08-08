@@ -10,6 +10,7 @@ import com.ikea.assignment.warehouse.api.model.Product;
 import com.ikea.assignment.warehouse.api.model.Products;
 import com.ikea.assignment.warehouse.service.WarehouseService;
 import com.ikea.assignment.warehouse.service.entity.Inventory;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +48,7 @@ public class WarehouseController {
     private final InventoryMapper inventoryMapper;
     private final ProductMapper productMapper;
 
+    @Operation(summary = "Upload new Inventory")
     @PostMapping(path = "/inventory", consumes = {MULTIPART_FORM_DATA_VALUE}, produces = APPLICATION_JSON_VALUE)
     public ResponseEntity<String> loadInventory(@RequestParam("file") MultipartFile file) {
         String contentType = file.getContentType();
@@ -74,6 +76,7 @@ public class WarehouseController {
         }
     }
 
+    @Operation(summary = "Upload new Products")
     @PostMapping(path = "/products", consumes = {MULTIPART_FORM_DATA_VALUE}, produces = APPLICATION_JSON_VALUE)
     public ResponseEntity<String> loadProducts(@RequestParam("file") MultipartFile file) {
         String contentType = file.getContentType();
@@ -101,6 +104,7 @@ public class WarehouseController {
         }
     }
 
+    @Operation(summary = "Get List of Products")
     @GetMapping(path = "/products")
     public ResponseEntity<Products> getAllProducts() {
         Map<com.ikea.assignment.warehouse.service.entity.Product, Integer> productIntegerMap = warehouseService.loadAllProducts();
@@ -108,6 +112,7 @@ public class WarehouseController {
         return ResponseEntity.ok(products);
     }
 
+    @Operation(summary = "Sell Product")
     @PutMapping(path = "/product/{id}/quantity/{amount}")
     public ResponseEntity<Product> sellProduct(@PathVariable(value = "id") String id, @PathVariable(value = "amount") Integer amount) {
         AbstractMap.SimpleEntry<com.ikea.assignment.warehouse.service.entity.Product, Integer> productDetails = warehouseService.sellProduct(UUID.fromString(id), amount);
@@ -117,6 +122,7 @@ public class WarehouseController {
         return ResponseEntity.ok(product);
     }
 
+    @Operation(summary = "Delete Product")
     @DeleteMapping("/product/{id}")
     public ResponseEntity<Products> deleteProduct(@PathVariable(value = "id") String id) {
         Map<com.ikea.assignment.warehouse.service.entity.Product, Integer> productIntegerMap = warehouseService.deleteProduct(UUID.fromString(id));

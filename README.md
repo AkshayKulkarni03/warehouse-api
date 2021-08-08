@@ -43,5 +43,6 @@ This API provides very basic implementation of some basic operations of warehous
 * In future iterations, 
   * enhancements can be done with upload new products with supporting different upload file formats with inventory details with it
   * enhancements can be done with upload new products with supporting different upload file formats.
+  * sell product can be upgraded to sell multiple products
   * More enhanced test cases.
   * better security implementation based on roles
