@@ -29,3 +29,19 @@ Make sure to run locally maven build (like below) to generate mapper implementat
 ```shell
 mvn clean install
 ```
+
+## Approach
+The warehouse related api have basic implementation of apis
+* Upload inventories
+* Upload products (required to related inventory present)
+* Get all products with there quantity available in stock
+* Sell product based on ID and quantity (updated inventory)
+* Delete Product based on ID (inventory is untouched)
+
+### Details
+This API provides very basic implementation of some basic operations of warehouse.
+* In future iterations, 
+  * enhancements can be done with upload new products with supporting different upload file formats with inventory details with it
+  * enhancements can be done with upload new products with supporting different upload file formats.
+  * More enhanced test cases.
+  * better security implementation based on roles
