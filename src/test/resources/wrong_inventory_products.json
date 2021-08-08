@@ -1,0 +1,21 @@
+{
+  "products": [
+    {
+      "name": "Test Chair",
+      "contain_articles": [
+        {
+          "art_id": "10",
+          "amount_of": "4"
+        },
+        {
+          "art_id": "20",
+          "amount_of": "8"
+        },
+        {
+          "art_id": "30",
+          "amount_of": "1"
+        }
+      ]
+    }
+  ]
+}

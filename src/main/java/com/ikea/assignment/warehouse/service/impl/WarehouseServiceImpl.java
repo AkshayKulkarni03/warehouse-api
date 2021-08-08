@@ -11,6 +11,7 @@ import com.ikea.assignment.warehouse.service.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor(onConstructor_ = {@Autowired})
+@EnableTransactionManagement
 public class WarehouseServiceImpl implements WarehouseService {
 
     private final InventoryRepository inventoryRepository;
@@ -86,39 +88,36 @@ public class WarehouseServiceImpl implements WarehouseService {
     @Override
     public AbstractMap.SimpleEntry<Product, Integer> sellProduct(UUID id, Integer amount) {
         Optional<Product> optionalProduct = productRepository.findById(id);
-        if (optionalProduct.isPresent()) {
-            Product product = optionalProduct.get();
-            AbstractMap.SimpleEntry<Product, Integer> productQuantity = getProductQuantity(getInventoryStockData(), product);
-            if (productQuantity.getValue() >= amount) {
-                List<Article> articles = product.getArticles();
-                articles.forEach(article -> {
-                    String articleId = article.getInventory().getArticleId();
-                    Optional<Inventory> optionalInventory = inventoryRepository.findByArticleId(articleId);
-                    if (optionalInventory.isPresent()) {
-                        Inventory inventory = optionalInventory.get();
-                        inventory.setStock(inventory.getStock() - article.getAmount());
-                        inventoryRepository.save(inventory);
-                    }
-                });
-                return getProductQuantity(getInventoryStockData(), product);
-            } else {
-                throw new ProductNotAvailableException(String.format("Product '%s' is not available in stock with quantity '%d'", product.getName(), amount));
-            }
+
+        Product product = optionalProduct.orElseThrow(() -> new ProductNotAvailableException("Product is not found"));
+
+        AbstractMap.SimpleEntry<Product, Integer> productQuantity = getProductQuantity(getInventoryStockData(), product);
+        if (productQuantity.getValue() >= amount) {
+            List<Article> articles = product.getArticles();
+            articles.forEach(article -> {
+                String articleId = article.getInventory().getArticleId();
+                Optional<Inventory> optionalInventory = inventoryRepository.findByArticleId(articleId);
+                if (optionalInventory.isPresent()) {
+                    Inventory inventory = optionalInventory.get();
+                    inventory.setStock(inventory.getStock() - article.getAmount());
+                    inventoryRepository.save(inventory);
+                }
+            });
+            return getProductQuantity(getInventoryStockData(), product);
         } else {
-            throw new ProductNotAvailableException("Product is not found");
+            throw new ProductNotAvailableException(String.format("Product '%s' is not available in stock with quantity '%d'", product.getName(), amount));
         }
     }
 
     @Override
     public Map<Product, Integer> deleteProduct(UUID id) {
         Optional<Product> optionalProduct = productRepository.findById(id);
-        if (optionalProduct.isPresent()) {
-            Product product = optionalProduct.get();
-            productRepository.delete(product);
-            return loadAllProducts();
-        } else {
-            throw new ProductNotAvailableException("Product is not found");
-        }
+
+        Product product = optionalProduct.orElseThrow(() -> new ProductNotAvailableException("Product is not found"));
+
+        productRepository.delete(product);
+
+        return loadAllProducts();
     }
 
     private Map<String, Long> getInventoryStockData() {
